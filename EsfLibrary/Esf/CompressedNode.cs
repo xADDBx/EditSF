@@ -13,14 +13,30 @@ namespace EsfLibrary {
             Name = TAG_NAME;
             compressedNode = rootNode;
         }
-        
+
         private RecordNode compressedNode;
-        
+
         public static readonly string TAG_NAME = "COMPRESSED_DATA";
         public static readonly string INFO_TAG = "COMPRESSED_DATA_INFO";
 
-        public void Decode(BinaryReader reader) {
-            // nothing to do
+        private static string Hex(byte[] data, int offset, int count) {
+            if (data == null) return "<null>";
+            if (offset < 0) offset = 0;
+            if (offset > data.Length) offset = data.Length;
+            int len = Math.Min(count, data.Length - offset);
+            char[] chars = new char[len * 3];
+            int p = 0;
+            for (int i = 0; i < len; i++) {
+                byte b = data[offset + i];
+                chars[p++] = GetHexNibble(b >> 4);
+                chars[p++] = GetHexNibble(b & 0xF);
+                chars[p++] = ' ';
+            }
+            return new string(chars, 0, p).TrimEnd();
+        }
+
+        private static char GetHexNibble(int v) {
+            return (char)(v < 10 ? ('0' + v) : ('A' + (v - 10)));
         }
 
         // unzip contained 7zip node
@@ -36,8 +52,7 @@ namespace EsfLibrary {
 
             LzmaDecoder decoder = new LzmaDecoder();
             decoder.SetDecoderProperties(decodeProperties);
-            // DecompressionCodeProgress progress = new DecompressionCodeProgress(this);
-            
+
             byte[] outData = new byte[size];
             using (MemoryStream inStream = new MemoryStream(data, false), outStream = new MemoryStream(outData)) {
                 decoder.Code(inStream, outStream, data.Length, size, null);
@@ -50,40 +65,32 @@ namespace EsfLibrary {
             if (codec == null) {
                 codec = new AbcaFileCodec();
             }
-            EsfNode result;// = codec.Parse(outData);
+
+            EsfNode result;
             using (BinaryReader reader = new BinaryReader(new MemoryStream(outData))) {
                 result = codec.Parse(reader);
             }
             return result as RecordNode;
         }
-        
+
         //re-compress node
         public override void Encode(BinaryWriter writer) {
-            // encode the node into bytes
+            // unchanged
             byte[] data;
             MemoryStream uncompressedStream = new MemoryStream();
             using (BinaryWriter w = new BinaryWriter(uncompressedStream)) {
-                // use the node's own codec or we'll mess up the string lists
                 Decoded.Codec.EncodeRootNode(w, Decoded);
                 data = uncompressedStream.ToArray();
             }
-            uint uncompressedSize = (uint) data.LongLength;
-            
-            // compress the encoded data
-#if DEBUG
-            Console.WriteLine("compressing...");
-#endif
+            uint uncompressedSize = (uint)data.LongLength;
+
             MemoryStream outStream = new MemoryStream();
             LzmaEncoder encoder = new LzmaEncoder();
             using (uncompressedStream = new MemoryStream(data)) {
                 encoder.Code(uncompressedStream, outStream, data.Length, long.MaxValue, null);
                 data = outStream.ToArray();
             }
-#if DEBUG
-            Console.WriteLine("ok, compression done");
-#endif
-   
-            // prepare decoding information
+
             List<EsfNode> infoItems = new List<EsfNode>();
             infoItems.Add(new UIntNode { Value = uncompressedSize, TypeCode = EsfType.UINT32, Codec = Codec });
             using (MemoryStream propertyStream = new MemoryStream()) {
@@ -92,15 +99,14 @@ namespace EsfLibrary {
                     Value = propertyStream.ToArray()
                 });
             }
-            // put together the items expected by the unzipper
+
             List<EsfNode> dataItems = new List<EsfNode>();
             dataItems.Add(new RawDataNode(Codec) {
                 Value = data
             });
-            dataItems.Add(new RecordNode(Codec)  { Name = CompressedNode.INFO_TAG, Value = infoItems });
+            dataItems.Add(new RecordNode(Codec) { Name = CompressedNode.INFO_TAG, Value = infoItems });
             RecordNode compressedNode = new RecordNode(Codec) { Name = CompressedNode.TAG_NAME, Value = dataItems };
-            
-            // and finally encode
+
             compressedNode.Encode(writer);
         }
     }

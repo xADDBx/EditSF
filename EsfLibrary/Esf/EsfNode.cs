@@ -110,8 +110,7 @@ namespace EsfLibrary {
             Value = ConvertString(value);
         }
         public override string ToString() {
-#warning Not stable?
-            return val?.ToString() ?? "<null>";
+            return val.ToString();
         }
         
         public override bool Equals(object o) {
@@ -133,8 +132,7 @@ namespace EsfLibrary {
         }
         
         public override int GetHashCode() {
-#warning Not stable?
-            return Value?.GetHashCode() ?? 0;
+            return Value.GetHashCode();
         }
 
         public override void ToXml(TextWriter writer, string indent) {
