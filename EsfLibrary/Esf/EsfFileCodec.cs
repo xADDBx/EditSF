@@ -200,9 +200,11 @@ namespace EsfLibrary {
             private static Dictionary<int, string> BuildReverse(Dictionary<string, int> list) {
                 Dictionary<int, string> reverse = new Dictionary<int, string>();
                 foreach (KeyValuePair<string, int> kvp in list) {
-                    // If duplicate ids exist, keep the first string we see.
+                    // If duplicate ids exist explicitly throw
                     if (!reverse.ContainsKey(kvp.Value)) {
                         reverse.Add(kvp.Value, kvp.Key);
+                    } else {
+                        throw new InvalidDataException("Encountered duplicate key");
                     }
                 }
                 return reverse;

@@ -83,7 +83,6 @@ namespace EsfLibrary
             if (writer == null) throw new ArgumentNullException(nameof(writer));
             if (rootNode == null) throw new ArgumentNullException(nameof(rootNode));
 
-            // Reset any prior run state so repeated saves don't leak IDs.
             _utf16ById = new Dictionary<int, string>();
             _asciiById = new Dictionary<int, string>();
             _utf16IdByValue = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -272,8 +271,6 @@ namespace EsfLibrary
         {
             if (value == null)
             {
-                // Prefer a stable null/empty representation; ABCB files often use 0/5/etc,
-                // but without a spec we emit 0 for null and do not store it in the table.
                 return 0;
             }
 
@@ -283,7 +280,6 @@ namespace EsfLibrary
                 return id;
             }
 
-            // Allocate next free id (not necessarily contiguous if source file had holes).
             id = 0;
             while (_utf16ById.ContainsKey(id))
             {

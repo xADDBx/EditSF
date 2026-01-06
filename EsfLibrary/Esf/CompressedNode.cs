@@ -18,23 +18,6 @@ namespace EsfLibrary {
 
         public static readonly string TAG_NAME = "COMPRESSED_DATA";
         public static readonly string INFO_TAG = "COMPRESSED_DATA_INFO";
-
-        private static string Hex(byte[] data, int offset, int count) {
-            if (data == null) return "<null>";
-            if (offset < 0) offset = 0;
-            if (offset > data.Length) offset = data.Length;
-            int len = Math.Min(count, data.Length - offset);
-            char[] chars = new char[len * 3];
-            int p = 0;
-            for (int i = 0; i < len; i++) {
-                byte b = data[offset + i];
-                chars[p++] = GetHexNibble(b >> 4);
-                chars[p++] = GetHexNibble(b & 0xF);
-                chars[p++] = ' ';
-            }
-            return new string(chars, 0, p).TrimEnd();
-        }
-
         private static char GetHexNibble(int v) {
             return (char)(v < 10 ? ('0' + v) : ('A' + (v - 10)));
         }
@@ -75,14 +58,20 @@ namespace EsfLibrary {
 
         //re-compress node
         public override void Encode(BinaryWriter writer) {
-            // unchanged
+            // encode the node into bytes
             byte[] data;
             MemoryStream uncompressedStream = new MemoryStream();
             using (BinaryWriter w = new BinaryWriter(uncompressedStream)) {
+                // use the node's own codec or we'll mess up the string lists
                 Decoded.Codec.EncodeRootNode(w, Decoded);
                 data = uncompressedStream.ToArray();
             }
             uint uncompressedSize = (uint)data.LongLength;
+
+            // compress the encoded data
+#if DEBUG
+            Console.WriteLine("compressing...");
+#endif
 
             MemoryStream outStream = new MemoryStream();
             LzmaEncoder encoder = new LzmaEncoder();
@@ -90,7 +79,11 @@ namespace EsfLibrary {
                 encoder.Code(uncompressedStream, outStream, data.Length, long.MaxValue, null);
                 data = outStream.ToArray();
             }
+#if DEBUG
+            Console.WriteLine("ok, compression done");
+#endif
 
+            // prepare decoding information
             List<EsfNode> infoItems = new List<EsfNode>();
             infoItems.Add(new UIntNode { Value = uncompressedSize, TypeCode = EsfType.UINT32, Codec = Codec });
             using (MemoryStream propertyStream = new MemoryStream()) {
