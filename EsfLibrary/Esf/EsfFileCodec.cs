@@ -298,7 +298,7 @@ namespace EsfLibrary {
                 } else if (node.TypeCode == EsfType.RECORD_BLOCK) {
                     WriteRecordArrayNode(writer, node);
                 } else {
-                    throw new NotImplementedException(string.Format("Cannot write type code {0:x} at {1:x}", node.TypeCode));
+                    throw new NotImplementedException(string.Format("Cannot write type code {0:x} at {1:x}", node.TypeCode, writer.BaseStream.Position));
                 }
             } catch {
                 Console.WriteLine(string.Format("failed to write node {0}", node));

@@ -43,10 +43,14 @@ namespace EsfLibrary {
                 decoder.Code(inStream, outStream, data.Length, size, null);
                 outData = outStream.ToArray();
             }
-            EsfNode result;
-            AbcaFileCodec codec = new AbcaFileCodec();
-
-            result = codec.Parse(outData);
+            EsfCodec codec;
+            using (var ms = new MemoryStream(outData, writable: false)) {
+                codec = EsfCodecUtil.GetCodec(ms);
+            }
+            if (codec == null) {
+                codec = new AbcaFileCodec();
+            }
+            EsfNode result;// = codec.Parse(outData);
             using (BinaryReader reader = new BinaryReader(new MemoryStream(outData))) {
                 result = codec.Parse(reader);
             }

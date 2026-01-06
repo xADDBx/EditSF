@@ -89,7 +89,6 @@ namespace EsfLibrary
                 throw new InvalidDataException("ABCB header size mismatch.");
             }
 
-            // Use ABCA record encoding rules
             Encode(writer, rootNode);
 
             long nodeNamePosition = writer.BaseStream.Position;
