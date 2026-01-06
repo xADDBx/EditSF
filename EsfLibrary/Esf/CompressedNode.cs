@@ -18,8 +18,9 @@ namespace EsfLibrary {
 
         public static readonly string TAG_NAME = "COMPRESSED_DATA";
         public static readonly string INFO_TAG = "COMPRESSED_DATA_INFO";
-        private static char GetHexNibble(int v) {
-            return (char)(v < 10 ? ('0' + v) : ('A' + (v - 10)));
+
+        public void Decode(BinaryReader reader) {
+            // nothing to do
         }
 
         // unzip contained 7zip node
@@ -92,7 +93,7 @@ namespace EsfLibrary {
                     Value = propertyStream.ToArray()
                 });
             }
-
+            // put together the items expected by the unzipper
             List<EsfNode> dataItems = new List<EsfNode>();
             dataItems.Add(new RawDataNode(Codec) {
                 Value = data
@@ -100,6 +101,7 @@ namespace EsfLibrary {
             dataItems.Add(new RecordNode(Codec) { Name = CompressedNode.INFO_TAG, Value = infoItems });
             RecordNode compressedNode = new RecordNode(Codec) { Name = CompressedNode.TAG_NAME, Value = dataItems };
 
+            // and finally encode
             compressedNode.Encode(writer);
         }
     }
