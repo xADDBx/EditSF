@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Esf\AbcaCodec.cs" />
+    <Compile Include="Esf\AbcbFileCodec.cs" />
     <Compile Include="Esf\AbceCodec.cs" />
     <Compile Include="Esf\AbcfCodec.cs" />
     <Compile Include="Esf\Nodes\DelegatingDecoderNode.cs" />

@@ -37,6 +37,9 @@ namespace EsfLibrary {
                 case 0xABCA:
                     codec = new AbcaFileCodec();
                     break;
+                case 0xABCB:
+                    codec = new AbcbFileCodec();
+                    break;
             }
             return codec;
         }
