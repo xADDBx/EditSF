@@ -210,7 +210,7 @@ namespace EsfLibrary {
                 return Parse(reader);
             }
         }
-        public EsfNode Parse(BinaryReader reader) {
+        public virtual EsfNode Parse(BinaryReader reader) {
             reader.BaseStream.Seek(0, SeekOrigin.Begin);
             Header = ReadHeader(reader);
             uint nodeNameOffset = reader.ReadUInt32();
@@ -271,7 +271,7 @@ namespace EsfLibrary {
         }
         #endregion
         
-        public void EncodeRootNode(BinaryWriter writer, EsfNode rootNode) {
+        public virtual void EncodeRootNode(BinaryWriter writer, EsfNode rootNode) {
             WriteHeader(writer);
             long currentPosition = writer.BaseStream.Position;
             writer.Write(0);

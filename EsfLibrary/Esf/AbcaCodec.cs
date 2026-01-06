@@ -20,7 +20,7 @@ namespace EsfLibrary
         protected void WriteFloatNoop(BinaryWriter writer, float value) { }
         #endregion
 
-        public AbcaFileCodec() : base(0xABCA) { }
+        public AbcaFileCodec(uint id = 0xABCA) : base(id) { }
 
         public override EsfNode Decode(BinaryReader reader, byte typeCode)
         {
