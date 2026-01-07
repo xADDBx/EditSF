@@ -159,6 +159,8 @@
             base.Close();
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public bool CanRename
         {
             get
