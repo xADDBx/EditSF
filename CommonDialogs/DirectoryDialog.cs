@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -18,6 +19,8 @@ namespace CommonDialogs {
         }
 
         // the text to display to the user
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public string Description {
             set {
                 label.Text = value;
@@ -28,6 +31,8 @@ namespace CommonDialogs {
         }
 
         // the starting or chosen directory (will be empty string if cancelled)
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public string SelectedPath {
             get {
                 return directory.Text;

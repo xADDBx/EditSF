@@ -19,6 +19,8 @@ namespace CommonDialogs {
         }
 
         #region List Content Setting and Retrieval
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public List<string> LeftList {
             set {
                 ToListBox(leftListBox, value);
@@ -27,6 +29,9 @@ namespace CommonDialogs {
                 return FromListBox(leftListBox);
             }
         }
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public List<string> RightList {
             set {
                 ToListBox(rightListBox, value);
@@ -39,14 +44,21 @@ namespace CommonDialogs {
 
         // set to maintain an initial order when items move between lists
         // if not set, moved items will be added to the end of the target list
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public List<string> OriginalOrder { get; set; }
 
         #region Label setting
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public string LeftLabel {
             set {
                 leftListLabel.Text = value;
             }
         }
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public string RightLabel {
             set {
                 rightListLabel.Text = value;

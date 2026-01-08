@@ -17,6 +17,8 @@ namespace CommonDialogs {
          * The text entered in the input box.
          * Can be used before showing the dialog to set initial input.
          */
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public string Input {
             get {
                 return valueField.Text;

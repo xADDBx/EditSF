@@ -17,6 +17,9 @@ namespace EditSF {
 
         #region Properties
         string filename = null;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public string FileName {
             get {
                 return filename;

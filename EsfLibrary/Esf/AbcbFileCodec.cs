@@ -9,6 +9,15 @@ namespace EsfLibrary
     {
         private const int HeaderSize = 16;
 
+        private int _nextUtf16Id;
+        private int _nextAsciiId;
+
+        private Dictionary<int, string> _utf16ById = new Dictionary<int, string>();
+        private Dictionary<int, string> _asciiById = new Dictionary<int, string>();
+
+        private Dictionary<string, int> _utf16IdByValue = new Dictionary<string, int>(StringComparer.Ordinal);
+        private Dictionary<string, int> _asciiIdByValue = new Dictionary<string, int>(StringComparer.Ordinal);
+
         public AbcbFileCodec()
             : base(0xABCB)
         {
@@ -39,13 +48,22 @@ namespace EsfLibrary
             };
         }
 
-        public override void WriteHeader(BinaryWriter writer)
-        {
+        public override void WriteHeader(BinaryWriter writer) {
             if (writer == null) throw new ArgumentNullException(nameof(writer));
 
+            uint unknown4 = 0;
+            uint timestampRaw = AbceCodec.GetTimestamp(DateTime.UtcNow);
+
+            if (Header is AbcbHeader h) {
+                unknown4 = h.Unknown4;
+                timestampRaw = h.TimestampRaw;
+            } else {
+
+            }
+
             writer.Write(0xABCBu);
-            writer.Write(0u);
-            writer.Write(AbceCodec.GetTimestamp(DateTime.UtcNow));
+            writer.Write(unknown4);
+            writer.Write(timestampRaw);
             writer.Write(0u); // NodeNameOffset patched in EncodeRootNode
         }
 
@@ -78,27 +96,33 @@ namespace EsfLibrary
             return result;
         }
 
-        public override void EncodeRootNode(BinaryWriter writer, EsfNode rootNode)
-        {
+        public override void EncodeRootNode(BinaryWriter writer, EsfNode rootNode) {
             if (writer == null) throw new ArgumentNullException(nameof(writer));
             if (rootNode == null) throw new ArgumentNullException(nameof(rootNode));
 
-            _utf16ById = new Dictionary<int, string>();
-            _asciiById = new Dictionary<int, string>();
-            _utf16IdByValue = new Dictionary<string, int>(StringComparer.Ordinal);
-            _asciiIdByValue = new Dictionary<string, int>(StringComparer.Ordinal);
+            // Preserve original IDs when saving an existing file; only add new IDs for new strings.
+            PrepareStringTablesForEncode();
+
+            EnsureNodeNamesPresent(rootNode);
+
+            byte[] encodedRoot;
+            using (var bufferStream = new MemoryStream())
+            using (var bufferWriter = new BinaryWriter(bufferStream, Encoding.UTF8, leaveOpen: true)) {
+                Encode(bufferWriter, rootNode);
+                bufferWriter.Flush();
+                encodedRoot = bufferStream.ToArray();
+            }
 
             WriteHeader(writer);
 
-            if (writer.BaseStream.Position != HeaderSize)
-            {
+            if (writer.BaseStream.Position != HeaderSize) {
                 throw new InvalidDataException("ABCB header size mismatch.");
             }
 
-            Encode(writer, rootNode);
+            writer.Write(encodedRoot);
 
             long nodeNamePosition = writer.BaseStream.Position;
-            WriteNodeNames(writer);
+            WriteNodeNames(writer, _utf16ById, _asciiById);
 
             long restore = writer.BaseStream.Position;
             writer.BaseStream.Seek(0x0C, SeekOrigin.Begin);
@@ -106,13 +130,43 @@ namespace EsfLibrary
             writer.BaseStream.Seek(restore, SeekOrigin.Begin);
         }
 
-        // ABCB: use id->string lookup for references
-        private Dictionary<int, string> _utf16ById = new Dictionary<int, string>();
-        private Dictionary<int, string> _asciiById = new Dictionary<int, string>();
+        private void PrepareStringTablesForEncode() {
+            if (_utf16ById == null) {
+                _utf16ById = new Dictionary<int, string>();
+            }
 
-        // For writing: value->id reverse maps (ensures stable ID per string value within one encode)
-        private Dictionary<string, int> _utf16IdByValue = new Dictionary<string, int>(StringComparer.Ordinal);
-        private Dictionary<string, int> _asciiIdByValue = new Dictionary<string, int>(StringComparer.Ordinal);
+            if (_asciiById == null) {
+                _asciiById = new Dictionary<int, string>();
+            }
+
+            if (_utf16IdByValue == null) {
+                _utf16IdByValue = new Dictionary<string, int>(StringComparer.Ordinal);
+            }
+
+            if (_asciiIdByValue == null) {
+                _asciiIdByValue = new Dictionary<string, int>(StringComparer.Ordinal);
+            }
+
+            if (_utf16IdByValue.Count == 0 && _utf16ById.Count != 0) {
+                foreach (var kvp in _utf16ById) {
+                    // If duplicates exist, preserve first-seen mapping.
+                    if (!_utf16IdByValue.ContainsKey(kvp.Value)) {
+                        _utf16IdByValue.Add(kvp.Value, kvp.Key);
+                    }
+                }
+            }
+
+            if (_asciiIdByValue.Count == 0 && _asciiById.Count != 0) {
+                foreach (var kvp in _asciiById) {
+                    if (!_asciiIdByValue.ContainsKey(kvp.Value)) {
+                        _asciiIdByValue.Add(kvp.Value, kvp.Key);
+                    }
+                }
+            }
+
+            _nextUtf16Id = ComputeNextId(_utf16ById);
+            _nextAsciiId = ComputeNextId(_asciiById);
+        }
 
         protected override void ReadNodeNames(BinaryReader reader)
         {
@@ -148,6 +202,28 @@ namespace EsfLibrary
                     _asciiIdByValue.Add(kvp.Value, kvp.Key);
                 }
             }
+
+            _nextUtf16Id = ComputeNextId(_utf16ById);
+            _nextAsciiId = ComputeNextId(_asciiById);
+        }
+
+        private static int ComputeNextId(Dictionary<int, string> byId)
+        {
+            if (byId == null || byId.Count == 0)
+            {
+                return 0;
+            }
+
+            int max = -1;
+            foreach (int id in byId.Keys)
+            {
+                if (id > max)
+                {
+                    max = id;
+                }
+            }
+
+            return max + 1;
         }
 
         private static Dictionary<int, string> ReadAbcbUtf16StringTableById(BinaryReader reader)
@@ -228,12 +304,12 @@ namespace EsfLibrary
             switch (typeCode)
             {
                 case EsfType.UTF16:
-                    result = new StringNode(ReadUtf16String, WriteUtf16Reference);
+                    result = new StringNode(ReadUtf16String, WriteUtf16ReferenceAbcb);
                     break;
                 case EsfType.ASCII:
                 case EsfType.ASCII_W21:
                 case EsfType.ASCII_W25:
-                    result = new StringNode(ReadAsciiString, WriteAsciiReference);
+                    result = new StringNode(ReadAsciiString, WriteAsciiReferenceAbcb);
                     break;
                 default:
                     return base.CreateValueNode(typeCode, optimize);
@@ -243,7 +319,7 @@ namespace EsfLibrary
             return result;
         }
 
-        protected override string ReadUtf16String(BinaryReader reader)
+        public override string ReadUtf16String(BinaryReader reader)
         {
             int id = reader.ReadInt32();
             string value;
@@ -255,7 +331,7 @@ namespace EsfLibrary
             return value;
         }
 
-        protected override string ReadAsciiString(BinaryReader reader)
+        public override string ReadAsciiString(BinaryReader reader)
         {
             int id = reader.ReadInt32();
             string value;
@@ -280,12 +356,13 @@ namespace EsfLibrary
                 return id;
             }
 
-            id = 0;
+            id = _nextUtf16Id;
             while (_utf16ById.ContainsKey(id))
             {
                 id++;
             }
 
+            _nextUtf16Id = id + 1;
             _utf16ById.Add(id, value);
             _utf16IdByValue.Add(value, id);
             return id;
@@ -304,18 +381,19 @@ namespace EsfLibrary
                 return id;
             }
 
-            id = 0;
+            id = _nextAsciiId;
             while (_asciiById.ContainsKey(id))
             {
                 id++;
             }
 
+            _nextAsciiId = id + 1;
             _asciiById.Add(id, value);
             _asciiIdByValue.Add(value, id);
             return id;
         }
 
-        private new void WriteUtf16Reference(BinaryWriter writer, string value)
+        private void WriteUtf16ReferenceAbcb(BinaryWriter writer, string value)
         {
             if (writer == null) throw new ArgumentNullException(nameof(writer));
 
@@ -323,7 +401,7 @@ namespace EsfLibrary
             writer.Write(id);
         }
 
-        private new void WriteAsciiReference(BinaryWriter writer, string value)
+        private void WriteAsciiReferenceAbcb(BinaryWriter writer, string value)
         {
             if (writer == null) throw new ArgumentNullException(nameof(writer));
 
@@ -333,6 +411,12 @@ namespace EsfLibrary
 
         protected override void WriteNodeNames(BinaryWriter writer)
         {
+            // Kept for compatibility; EncodeRootNode uses the overload below.
+            WriteNodeNames(writer, _utf16ById, _asciiById);
+        }
+
+        private void WriteNodeNames(BinaryWriter writer, Dictionary<int, string> utf16ByIdToWrite, Dictionary<int, string> asciiByIdToWrite)
+        {
             if (writer == null) throw new ArgumentNullException(nameof(writer));
 
             writer.Write((short)nodeNames.Count);
@@ -341,18 +425,20 @@ namespace EsfLibrary
                 WriteAscii(writer, nodeNames[i]);
             }
 
-            WriteAbcbUtf16StringTableById(writer, _utf16ById);
-            WriteAbcbAsciiStringTableById(writer, _asciiById);
+            WriteAbcbUtf16StringTableById(writer, utf16ByIdToWrite);
+            WriteAbcbAsciiStringTableById(writer, asciiByIdToWrite);
         }
 
         private static void WriteAbcbUtf16StringTableById(BinaryWriter writer, Dictionary<int, string> byId)
         {
             writer.Write(byId.Count);
 
-            foreach (var kvp in byId)
+            List<int> ids = new List<int>(byId.Keys);
+            ids.Sort();
+
+            foreach (int id in ids)
             {
-                string value = kvp.Value ?? string.Empty;
-                int id = kvp.Key;
+                string value = byId[id] ?? string.Empty;
 
                 int charLen = value.Length;
                 writer.Write(charLen);
@@ -371,10 +457,12 @@ namespace EsfLibrary
         {
             writer.Write(byId.Count);
 
-            foreach (var kvp in byId)
+            List<int> ids = new List<int>(byId.Keys);
+            ids.Sort();
+
+            foreach (int id in ids)
             {
-                string value = kvp.Value ?? string.Empty;
-                int id = kvp.Key;
+                string value = byId[id] ?? string.Empty;
 
                 byte[] bytes = Encoding.ASCII.GetBytes(value);
                 writer.Write(bytes.Length);
@@ -385,6 +473,100 @@ namespace EsfLibrary
                 }
 
                 writer.Write(id);
+            }
+        }
+
+        private void EnsureNodeNamesPresent(EsfNode rootNode)
+        {
+            if (nodeNames != null && nodeNames.Count > 0)
+            {
+                return;
+            }
+
+            nodeNames = new SortedList<int, string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            CollectNodeNames(rootNode, seen);
+        }
+
+        private void CollectNodeNames(EsfNode node, HashSet<string> seen)
+        {
+            RecordNode record = node as RecordNode;
+            if (record != null)
+            {
+                string name = record.Name;
+                if (!string.IsNullOrEmpty(name) && seen.Add(name))
+                {
+                    nodeNames.Add(nodeNames.Count, name);
+                }
+            }
+
+            ParentNode parent = node as ParentNode;
+            if (parent != null)
+            {
+                foreach (EsfNode child in parent.AllNodes)
+                {
+                    CollectNodeNames(child, seen);
+                }
+            }
+        }
+
+        private void CollectStrings(EsfNode node)
+        {
+            EsfValueNode<string> stringNode = node as EsfValueNode<string>;
+            if (stringNode != null)
+            {
+                if (node.TypeCode == EsfType.UTF16)
+                {
+                    GetOrCreateUtf16Id(stringNode.Value);
+                }
+                else if (node.TypeCode == EsfType.ASCII || node.TypeCode == EsfType.ASCII_W21 || node.TypeCode == EsfType.ASCII_W25)
+                {
+                    GetOrCreateAsciiId(stringNode.Value);
+                }
+            }
+
+            ParentNode parent = node as ParentNode;
+            if (parent != null)
+            {
+                foreach (EsfNode child in parent.AllNodes)
+                {
+                    CollectStrings(child);
+                }
+            }
+        }
+
+        private void CollectReferencedStringIds(EsfNode node, HashSet<int> utf16Ids, HashSet<int> asciiIds)
+        {
+            EsfValueNode<string> stringNode = node as EsfValueNode<string>;
+            if (stringNode != null)
+            {
+                string value = stringNode.Value;
+
+                if (node.TypeCode == EsfType.UTF16)
+                {
+                    int id;
+                    if (value != null && _utf16IdByValue.TryGetValue(value, out id))
+                    {
+                        utf16Ids.Add(id);
+                    }
+                }
+                else if (node.TypeCode == EsfType.ASCII || node.TypeCode == EsfType.ASCII_W21 || node.TypeCode == EsfType.ASCII_W25)
+                {
+                    int id;
+                    if (value != null && _asciiIdByValue.TryGetValue(value, out id))
+                    {
+                        asciiIds.Add(id);
+                    }
+                }
+            }
+
+            ParentNode parent = node as ParentNode;
+            if (parent != null)
+            {
+                foreach (EsfNode child in parent.AllNodes)
+                {
+                    CollectReferencedStringIds(child, utf16Ids, asciiIds);
+                }
             }
         }
     }

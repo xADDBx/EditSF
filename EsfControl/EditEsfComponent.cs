@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
@@ -14,6 +15,9 @@ namespace EsfControl {
         TreeEventHandler treeEventHandler;
 
         EsfTreeNode rootNode;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public EsfNode RootNode {
             get {
                 return rootNode != null ? rootNode.Tag as EsfNode : null;
@@ -32,6 +36,9 @@ namespace EsfControl {
         }
 
         bool showCode;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public bool ShowCode {
             get { return showCode; }
             set {
@@ -93,6 +100,8 @@ namespace EsfControl {
             }
         }
         
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
         public string SelectedPath {
             get {
                 EsfNode node = esfNodeTree.SelectedNode.Tag as EsfNode;

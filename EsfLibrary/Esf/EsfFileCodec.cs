@@ -155,8 +155,8 @@ namespace EsfLibrary {
             return new Coordinates3D(r.ReadSingle(), r.ReadSingle(), r.ReadSingle());
         }
         // virtual to be able to override
-        protected virtual string ReadUtf16String(BinaryReader reader) { return ReadUtf16(reader); }
-        protected virtual string ReadAsciiString(BinaryReader reader) { return ReadAscii (reader); }
+        public virtual string ReadUtf16String(BinaryReader reader) { return ReadUtf16(reader); }
+        public virtual string ReadAsciiString(BinaryReader reader) { return ReadAscii (reader); }
         #endregion
 
         #region String Readers/Writers
@@ -505,7 +505,7 @@ namespace EsfLibrary {
 //            return items.ToArray();
 //        }
 
-        protected void WriteArrayNode(BinaryWriter writer, EsfNode arrayNode) {
+        protected virtual void WriteArrayNode(BinaryWriter writer, EsfNode arrayNode) {
             // writer.Write((byte) arrayNode.TypeCode);
 #if DEBUG
             Console.WriteLine("writing array node type {0} at {1}", arrayNode.TypeCode, writer.BaseStream.Position);

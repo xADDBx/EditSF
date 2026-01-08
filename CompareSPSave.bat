@@ -1,0 +1,1 @@
+.\EsfTest\bin\Release\net10.0\EsfTest.exe compare Original.save Changed.save
