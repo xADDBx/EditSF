@@ -48,10 +48,10 @@ namespace EsfLibrary {
         public AbcfFileCodec(uint id = 0xABCF) : base(id) { }
 
         // re-rout the string reading to looking up in the appropriate table
-        protected override string ReadUtf16String(BinaryReader reader) {
+        public override string ReadUtf16String(BinaryReader reader) {
             return ReadStringReference (reader, Utf16StringList);
         }
-        protected override string ReadAsciiString(BinaryReader reader) {
+        public override string ReadAsciiString(BinaryReader reader) {
             return ReadStringReference (reader, AsciiStringList);
         }
         protected void WriteAsciiReference(BinaryWriter w, string s) {

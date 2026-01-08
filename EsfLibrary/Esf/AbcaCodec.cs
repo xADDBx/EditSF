@@ -297,6 +297,7 @@ namespace EsfLibrary
             shortInfo |= (ushort)(RECORD_BIT << 8);
             return shortInfo;
         }
+        private static int count = 0;
 
         public override void EncodeSized(BinaryWriter writer, List<EsfNode> nodes, bool writeCount = false)
         {
@@ -317,7 +318,12 @@ namespace EsfLibrary
             }
             writer.Write(encoded);
             encoded = null;
-            GC.Collect();
+            // Holy bottleneck; calling GC.Collect > 3 million times o.O
+            //GC.Collect();
+            if (count % 1000 == 0) {
+                //Console.WriteLine(count.ToString());
+            }
+            count++;
         }
         #endregion
     }

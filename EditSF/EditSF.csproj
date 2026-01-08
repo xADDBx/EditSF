@@ -8,6 +8,7 @@
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PackFileManager|AnyCPU'">
     <OutputPath>bin\PackFileManager\</OutputPath>
     <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
@@ -15,6 +16,7 @@
     <DebugType>none</DebugType>
     <Optimize>false</Optimize>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'EditSF|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\EditSF\</OutputPath>
@@ -22,35 +24,52 @@
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
     <Optimize>false</Optimize>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'EditSF Release|AnyCPU'">
     <OutputPath>bin\EditSF Release\</OutputPath>
     <Optimize>true</Optimize>
     <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PFM Debug|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\PFM Debug\</OutputPath>
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
     <Optimize>false</Optimize>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PFM Release|AnyCPU'">
     <OutputPath>bin\PFM Release\</OutputPath>
     <DebugType>none</DebugType>
     <Optimize>false</Optimize>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'EditSF Debug|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\EditSF Debug\</OutputPath>
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
     <Optimize>false</Optimize>
   </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\EsfControl\EsfControl.csproj" />
     <ProjectReference Include="..\EsfLibrary\EsfLibrary.csproj" />
     <ProjectReference Include="..\Library\7zip\7Zip.csproj" />
     <ProjectReference Include="..\CommonDialogs\CommonDialogs.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Prevent accidentally compiling nested legacy project/folder -->
+    <Compile Remove="CameraFix\**\*.cs" />
+    <EmbeddedResource Remove="CameraFix\**\*" />
+    <None Remove="CameraFix\**\*" />
+
+    <!-- Never compile build outputs that might live under the project tree -->
+    <Compile Remove="**\obj\**\*.cs" />
+    <Compile Remove="**\bin\**\*.cs" />
+  </ItemGroup>
+
   <ItemGroup Label="Compile items now included by globbing that were not in the original project file">
     <Compile Remove="CameraFix\obj\Release\.NETFramework,Version=v4.8.AssemblyAttributes.cs" />
     <Compile Remove="CameraFix\obj\Debug\.NETFramework,Version=v4.8.AssemblyAttributes.cs" />

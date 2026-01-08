@@ -12,9 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="System.Data.DataSetExtensions" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="Compress\LzmaAlone\bin\Debug\Lzma#.exe" />
     <Content Include="Compress\LzmaAlone\bin\Debug\Lzma#.pdb" />
     <Content Include="Compress\LzmaAlone\bin\Debug\Lzma#.vshost.exe" />
