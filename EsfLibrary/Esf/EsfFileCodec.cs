@@ -155,8 +155,8 @@ namespace EsfLibrary {
             return new Coordinates3D(r.ReadSingle(), r.ReadSingle(), r.ReadSingle());
         }
         // virtual to be able to override
-        public virtual string ReadUtf16String(BinaryReader reader) { return ReadUtf16(reader); }
-        public virtual string ReadAsciiString(BinaryReader reader) { return ReadAscii (reader); }
+        protected virtual string ReadUtf16String(BinaryReader reader) { return ReadUtf16(reader); }
+        protected virtual string ReadAsciiString(BinaryReader reader) { return ReadAscii (reader); }
         #endregion
 
         #region String Readers/Writers
@@ -232,7 +232,7 @@ namespace EsfLibrary {
                 return Parse(reader);
             }
         }
-        public virtual EsfNode Parse(BinaryReader reader) {
+        public EsfNode Parse(BinaryReader reader) {
             reader.BaseStream.Seek(0, SeekOrigin.Begin);
             Header = ReadHeader(reader);
             uint nodeNameOffset = reader.ReadUInt32();
@@ -293,7 +293,7 @@ namespace EsfLibrary {
         }
         #endregion
         
-        public virtual void EncodeRootNode(BinaryWriter writer, EsfNode rootNode) {
+        public void EncodeRootNode(BinaryWriter writer, EsfNode rootNode) {
             WriteHeader(writer);
             long currentPosition = writer.BaseStream.Position;
             writer.Write(0);
@@ -505,7 +505,7 @@ namespace EsfLibrary {
 //            return items.ToArray();
 //        }
 
-        protected virtual void WriteArrayNode(BinaryWriter writer, EsfNode arrayNode) {
+        protected void WriteArrayNode(BinaryWriter writer, EsfNode arrayNode) {
             // writer.Write((byte) arrayNode.TypeCode);
 #if DEBUG
             Console.WriteLine("writing array node type {0} at {1}", arrayNode.TypeCode, writer.BaseStream.Position);

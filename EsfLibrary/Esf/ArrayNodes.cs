@@ -30,91 +30,90 @@ namespace EsfLibrary {
         public override void ToXml(TextWriter writer, string indent) {
             writer.WriteLine("{2}<{0} Length=\"{1}\"/>", TypeCode, Value.Length, indent);
         }
-
+        #region ICodecNode Implementation
         protected virtual EsfType ContainedTypeCode {
-            get { return (EsfType)(TypeCode - 0x40); }
+            get { 
+                return (EsfType)(TypeCode - 0x40); 
+            }
         }
-
         public void Decode(BinaryReader reader, EsfType type) {
             EsfType containedTypeCode = ContainedTypeCode;
-
+#if DEBUG
+            // Console.WriteLine("decoding array type code {0} containing {1}", type, containedTypeCode);
+#endif
             int size = Codec.ReadSize(reader);
-            byte[] payload = reader.ReadBytes(size);
-
+#if DEBUG
+            // Console.WriteLine("Reading array[{0}] with {1} elements", type, size);
+#endif
             List<T> read = new List<T>();
-            using (var itemReader = new BinaryReader(new MemoryStream(payload))) {
-                if (containedTypeCode == EsfType.ASCII) {
-                    while (itemReader.BaseStream.Position < itemReader.BaseStream.Length) {
-                        object v = Codec.ReadAsciiString(itemReader);
-                        read.Add((T)v);
-                    }
-                } else if (containedTypeCode == EsfType.UTF16) {
-                    while (itemReader.BaseStream.Position < itemReader.BaseStream.Length) {
-                        object v = Codec.ReadUtf16String(itemReader);
-                        read.Add((T)v);
-                    }
-                } else {
-                    while (itemReader.BaseStream.Position < itemReader.BaseStream.Length) {
-                        read.Add(ReadFromCodec(itemReader, containedTypeCode));
-                    }
+            using (var itemReader = new BinaryReader(new MemoryStream(reader.ReadBytes(size)))) {
+                while (itemReader.BaseStream.Position < itemReader.BaseStream.Length) {
+                    read.Add(ReadFromCodec(itemReader, containedTypeCode));
                 }
             }
-
             Value = read.ToArray();
         }
-
         public void Encode(BinaryWriter writer) {
             EsfType containedTypeCode = ContainedTypeCode;
             EsfType myRealType = (EsfType)(containedTypeCode + 0x40);
+#if DEBUG
+            Console.WriteLine("encoding array with {2} bytes, code {0} containing {1}", myRealType, containedTypeCode, Value.Length);
+#endif
 
             writer.Write((byte)myRealType);
-
             byte[] encodedArray;
             using (var stream = new MemoryStream()) {
                 using (var memWriter = new BinaryWriter(stream)) {
                     CodecNode<T> valueNode = Codec.CreateValueNode(containedTypeCode, false) as CodecNode<T>;
                     valueNode.TypeCode = containedTypeCode;
-
                     foreach (T item in Value) {
                         valueNode.Value = item;
                         valueNode.WriteValue(memWriter);
                     }
-
                     encodedArray = stream.ToArray();
+#if DEBUG
+                    Console.WriteLine("size is {0}", encodedArray.Length);
+#endif
+                    Codec.WriteOffset(writer, encodedArray.Length);
+                    writer.Write(encodedArray);
                 }
             }
-
-            // IMPORTANT: arrays store SIZE, not offset. ABCA/ABCB ReadSize expects a varint size.
-            Codec.WriteSize(writer, encodedArray.Length);
-            writer.Write(encodedArray);
         }
-
         private T ReadFromCodec(BinaryReader reader, EsfType containedTypeCode) {
-            EsfValueNode<T> node = (EsfValueNode<T>)Codec.ReadValueNode(reader, containedTypeCode);
+            EsfValueNode<T> node = (EsfValueNode<T>) Codec.ReadValueNode(reader, containedTypeCode);
             return node.Value;
         }
+        #endregion
 
         public override void FromString(string value) {
+#if DEBUG
+            Console.WriteLine("decoding {0}", value);
+#endif
             string[] elements = value.Split(Separator.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
             List<T> values = new List<T>(elements.Length);
-            foreach (string e in elements) {
+            foreach(string e in elements) {
                 values.Add(ConvertItem(e));
+            }
+            if (Parent == null) {
+                Console.WriteLine("No parent set! I'm sad.");
             }
             Value = values.ToArray() ?? new T[0];
         }
 
+        #region Framework overrides
         public override bool Equals(object o) {
             EsfArrayNode<T> otherNode = o as EsfArrayNode<T>;
             bool result = otherNode != null;
             result &= ArraysEqual(Value, otherNode.Value);
             return result;
         }
-
         public override int GetHashCode() {
             return Value.GetHashCode();
         }
 
-        public string Separator { get; set; }
+        public string Separator {
+            get; set; 
+        }
 
         public override string ToString() {
             string result = "";
@@ -125,16 +124,16 @@ namespace EsfLibrary {
             } catch (Exception e) {
                 Console.WriteLine(e);
                 result = Value.ToString();
-                result = string.Format("{0}{1}]", result.Substring(0, result.Length - 1), Value.Length);
+                result = string.Format("{0}{1}]", result.Substring(0, result.Length-1), Value.Length);
             }
             return result;
         }
 
-        static bool ArraysEqual<O>(O[] array1, O[] array2) {
+        static bool ArraysEqual<O> (O[] array1, O[] array2) {
             bool result = array1.Length == array2.Length;
             if (result) {
                 for (int i = 0; i < array1.Length; i++) {
-                    if (!EqualityComparer<O>.Default.Equals(array1[i], array2[i])) {
+                    if (!EqualityComparer<O>.Default.Equals (array1[i], array2[i])) {
                         result = false;
                         break;
                     }
@@ -142,8 +141,17 @@ namespace EsfLibrary {
             }
             return result;
         }
+        static O[] ParseArray<O>(string value, Converter<O> convert) {
+            string[] itemStrings = value.Split(' ');
+            List<O> result = new List<O>(itemStrings.Length);
+            foreach (string s in itemStrings) {
+                result.Add(convert(s));
+            }
+            return result.ToArray();
+        }
+        #endregion
     }
-    
+
     public class RawDataNode : EsfValueNode<byte[]>, ICodecNode {
         public RawDataNode(EsfCodec codec) : base(delegate(string s) { throw new InvalidOperationException(); }) {
             Codec = codec;

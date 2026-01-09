@@ -33,6 +33,7 @@ namespace EsfLibrary {
             ParentNode infoNode = compressedNode.Children[0];
             uint size = (infoNode.Values[0] as EsfValueNode<uint>).Value;
             byte[] decodeProperties = (infoNode.Values[1] as EsfValueNode<byte[]>).Value;
+            // DecompressionCodeProgress progress = new DecompressionCodeProgress(this);
 
             LzmaDecoder decoder = new LzmaDecoder();
             decoder.SetDecoderProperties(decodeProperties);
@@ -67,13 +68,12 @@ namespace EsfLibrary {
                 Decoded.Codec.EncodeRootNode(w, Decoded);
                 data = uncompressedStream.ToArray();
             }
-            uint uncompressedSize = (uint)data.LongLength;
+            uint uncompressedSize = (uint) data.LongLength;
 
             // compress the encoded data
 #if DEBUG
             Console.WriteLine("compressing...");
 #endif
-
             MemoryStream outStream = new MemoryStream();
             LzmaEncoder encoder = new LzmaEncoder();
             using (uncompressedStream = new MemoryStream(data)) {
@@ -99,7 +99,7 @@ namespace EsfLibrary {
                 Value = data
             });
             dataItems.Add(new RecordNode(Codec) { Name = CompressedNode.INFO_TAG, Value = infoItems });
-            RecordNode compressedNode = new RecordNode(Codec) { Name = CompressedNode.TAG_NAME, Value = dataItems };
+            RecordNode compressedNode = new RecordNode(Codec)  { Name = CompressedNode.TAG_NAME, Value = dataItems };
 
             // and finally encode
             compressedNode.Encode(writer);

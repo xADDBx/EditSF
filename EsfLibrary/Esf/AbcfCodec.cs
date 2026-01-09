@@ -12,7 +12,7 @@ namespace EsfLibrary {
         #endregion
 
         #region String Reference Functions
-        protected virtual Dictionary<string, int> ReadStringList(BinaryReader reader, ValueReader<string> readString) {
+        static Dictionary<string, int> ReadStringList(BinaryReader reader, ValueReader<string> readString) {
             // amount of strings in the list
             int count = reader.ReadInt32();
             Dictionary<string, int> result = new Dictionary<string, int>(count);
@@ -23,7 +23,7 @@ namespace EsfLibrary {
             }
             return result;
         }
-        protected virtual void WriteStringList(BinaryWriter writer, Dictionary<string, int> stringList, ValueWriter<string> writeString) {
+        static void WriteStringList(BinaryWriter writer, Dictionary<string, int> stringList, ValueWriter<string> writeString) {
             writer.Write(stringList.Count);
             foreach(string s in stringList.Keys) {
                 writeString(writer, s);
@@ -48,10 +48,10 @@ namespace EsfLibrary {
         public AbcfFileCodec(uint id = 0xABCF) : base(id) { }
 
         // re-rout the string reading to looking up in the appropriate table
-        public override string ReadUtf16String(BinaryReader reader) {
+        protected override string ReadUtf16String(BinaryReader reader) {
             return ReadStringReference (reader, Utf16StringList);
         }
-        public override string ReadAsciiString(BinaryReader reader) {
+        protected override string ReadAsciiString(BinaryReader reader) {
             return ReadStringReference (reader, AsciiStringList);
         }
         protected void WriteAsciiReference(BinaryWriter w, string s) {
@@ -85,6 +85,7 @@ namespace EsfLibrary {
             result.TypeCode = typeCode;
             return result;
         }
+        // String tables have differing behaviour starting with 0xABCB; 
         protected virtual string ReadUtf16NodeNames(BinaryReader reader) => ReadUtf16(reader);
         protected virtual string ReadAsciiNodeNames(BinaryReader reader) => ReadAscii(reader);
         protected virtual void WriteUtf16NodeNames(BinaryWriter writer, string toWrite) => WriteUtf16(writer, toWrite);
