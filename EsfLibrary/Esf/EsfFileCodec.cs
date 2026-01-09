@@ -180,14 +180,30 @@ namespace EsfLibrary {
         public static string ReadStringReference(BinaryReader reader, Dictionary<string, int> list) {
             int referenceId = reader.ReadInt32();
             string result = null;
-            foreach (string key in list.Keys) {
-                int candidate = list[key];
-                if (candidate == referenceId) {
-                    result = key;
-                    break;
-                }
+            if (StringReferenceCache.TryGetString(list, referenceId, out result)) {
+                return result;
             }
-            return result;
+            return null;
+        }
+        private static class StringReferenceCache {
+            private static readonly ConditionalWeakTable<Dictionary<string, int>, Dictionary<int, string>> Cache = new ConditionalWeakTable<Dictionary<string, int>, Dictionary<int, string>>();
+
+            public static bool TryGetString(Dictionary<string, int> list, int id, out string value) {
+                Dictionary<int, string> reverse = Cache.GetValue(list, BuildReverse);
+                return reverse.TryGetValue(id, out value);
+            }
+
+            private static Dictionary<int, string> BuildReverse(Dictionary<string, int> list) {
+                Dictionary<int, string> reverse = new Dictionary<int, string>();
+                foreach (KeyValuePair<string, int> kvp in list) {
+                    if (!reverse.ContainsKey(kvp.Value)) {
+                        reverse.Add(kvp.Value, kvp.Key);
+                    } else {
+                        throw new InvalidDataException("Encountered duplicate key");
+                    }
+                }
+                return reverse;
+            }
         }
         #endregion
 
