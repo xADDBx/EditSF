@@ -12,7 +12,7 @@ namespace EsfLibrary {
         #endregion
 
         #region String Reference Functions
-        static Dictionary<string, int> ReadStringList(BinaryReader reader, ValueReader<string> readString) {
+        protected virtual Dictionary<string, int> ReadStringList(BinaryReader reader, ValueReader<string> readString) {
             // amount of strings in the list
             int count = reader.ReadInt32();
             Dictionary<string, int> result = new Dictionary<string, int>(count);
@@ -23,7 +23,7 @@ namespace EsfLibrary {
             }
             return result;
         }
-        static void WriteStringList(BinaryWriter writer, Dictionary<string, int> stringList, ValueWriter<string> writeString) {
+        protected virtual void WriteStringList(BinaryWriter writer, Dictionary<string, int> stringList, ValueWriter<string> writeString) {
             writer.Write(stringList.Count);
             foreach(string s in stringList.Keys) {
                 writeString(writer, s);
@@ -85,18 +85,21 @@ namespace EsfLibrary {
             result.TypeCode = typeCode;
             return result;
         }
-
+        protected virtual string ReadUtf16NodeNames(BinaryReader reader) => ReadUtf16(reader);
+        protected virtual string ReadAsciiNodeNames(BinaryReader reader) => ReadAscii(reader);
+        protected virtual void WriteUtf16NodeNames(BinaryWriter writer, string toWrite) => WriteUtf16(writer, toWrite);
+        protected virtual void WriteAsciiNodeNames(BinaryWriter writer, string toWrite) => WriteAscii(writer, toWrite);
         // override to read the two string lists after the node names
         protected override void ReadNodeNames(BinaryReader reader) {
             base.ReadNodeNames(reader);
             // create lookup lists (positioned immediately after the node names)
-            Utf16StringList = ReadStringList(reader, ReadUtf16);
-            AsciiStringList = ReadStringList(reader, ReadAscii);
+            Utf16StringList = ReadStringList(reader, ReadUtf16NodeNames);
+            AsciiStringList = ReadStringList(reader, ReadAsciiNodeNames);
         }
         protected override void WriteNodeNames(BinaryWriter writer) {
             base.WriteNodeNames(writer);
-            WriteStringList(writer, Utf16StringList, WriteUtf16);
-            WriteStringList(writer, AsciiStringList, WriteAscii);
+            WriteStringList(writer, Utf16StringList, WriteUtf16NodeNames);
+            WriteStringList(writer, AsciiStringList, WriteAsciiNodeNames);
         }
     }
 }
