@@ -105,7 +105,7 @@ namespace EsfLibrary {
         public override bool Equals(object o) {
             EsfArrayNode<T> otherNode = o as EsfArrayNode<T>;
             bool result = otherNode != null;
-            result &= ArraysEqual(Value, otherNode.Value);
+            result &= ArraysEqual(Value, otherNode?.Value);
             return result;
         }
         public override int GetHashCode() {
@@ -132,6 +132,9 @@ namespace EsfLibrary {
 
         #region Utility Functions
         static bool ArraysEqual<O> (O[] array1, O[] array2) {
+            if (array1 == null || array2 == null) {
+                return array1 == array2;
+            }
             bool result = array1.Length == array2.Length;
             if (result) {
                 for (int i = 0; i < array1.Length; i++) {

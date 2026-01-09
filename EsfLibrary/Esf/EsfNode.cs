@@ -116,8 +116,10 @@ namespace EsfLibrary {
         public override bool Equals(object o) {
             bool result = false;
             try {
-                T otherValue = (o as EsfValueNode<T>).Value;
-                result = (otherValue != null) && EqualityComparer<T>.Default.Equals(val, otherValue);
+                if (o is EsfValueNode<T> node) {
+                    T otherValue = node.Value;
+                    result = (otherValue != null) && EqualityComparer<T>.Default.Equals(val, otherValue);
+                }
             } catch {}
             if (!result) {
             }
