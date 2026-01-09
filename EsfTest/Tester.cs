@@ -48,8 +48,8 @@ namespace EsfTest {
                         return;
                     }
 
-                    string path = "COMPRESSED_DATA/CAMPAIGN_ENV/CAMPAIGN_MODEL/WORLD/FACTION_ARRAY/FACTION_ARRAY - 93/FACTION/FACTION_ECONOMICS";
-
+                    //string path = "COMPRESSED_DATA/CAMPAIGN_ENV/CAMPAIGN_MODEL/WORLD/FACTION_ARRAY/FACTION_ARRAY - 93/FACTION/FACTION_ECONOMICS";
+                    string path = "COMPRESSED_DATA/CAMPAIGN_ENV/CAMPAIGN_MODEL/WORLD/FACTION_ARRAY/FACTION_ARRAY - 17/FACTION/ARMY_ARRAY/ARMY_ARRAY - 1/MILITARY_FORCE/MILITARY_FORCE_HORDE_DETAILS/MILITARY_FORCE_SLOT_MANAGER/SLOT_BLOCK/SLOT_BLOCK - 0/MILITARY_FORCE_SLOT/MILITARY_FORCE_BUILDING_MANAGER/BUILDING_BASE";
                     for (int i = 3; i < args.Length; i++) {
                         if (args[i].StartsWith("--path=", StringComparison.OrdinalIgnoreCase)) {
                             path = args[i].Substring("--path=".Length);
@@ -68,8 +68,9 @@ namespace EsfTest {
                         return;
                     }
 
-                    Console.WriteLine($"t={sw.Elapsed} mutate int");
-                    bool mutated = Mutate(target, 666);
+                    Console.WriteLine($"t={sw.Elapsed} mutate");
+                    //bool mutated = Mutate(target, 666);
+                    bool mutated = Mutate(target, "Changed");
                     Console.WriteLine($"t={sw.Elapsed} mutated={mutated}");
 
                     Console.WriteLine($"t={sw.Elapsed} write");
@@ -101,6 +102,7 @@ namespace EsfTest {
                 }
 
                 if (next == null) {
+                    Console.WriteLine(part);
                     return null;
                 }
 
@@ -113,6 +115,16 @@ namespace EsfTest {
         private static bool Mutate(ParentNode record, int newVal) {
             foreach (EsfNode n in record.Values) {
                 if (n is OptimizedIntNode a) {
+                    a.Value = newVal;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        private static bool Mutate(ParentNode record, string newVal) {
+            foreach (EsfNode n in record.Values) {
+                if (n is StringNode a) {
                     a.Value = newVal;
                     return true;
                 }
