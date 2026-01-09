@@ -33,10 +33,10 @@ namespace EsfLibrary {
             ParentNode infoNode = compressedNode.Children[0];
             uint size = (infoNode.Values[0] as EsfValueNode<uint>).Value;
             byte[] decodeProperties = (infoNode.Values[1] as EsfValueNode<byte[]>).Value;
-            // DecompressionCodeProgress progress = new DecompressionCodeProgress(this);
 
             LzmaDecoder decoder = new LzmaDecoder();
             decoder.SetDecoderProperties(decodeProperties);
+            // DecompressionCodeProgress progress = new DecompressionCodeProgress(this);
 
             byte[] outData = new byte[size];
             using (MemoryStream inStream = new MemoryStream(data, false), outStream = new MemoryStream(outData)) {

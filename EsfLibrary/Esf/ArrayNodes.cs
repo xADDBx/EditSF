@@ -14,7 +14,7 @@ namespace EsfLibrary {
             ConvertItem = DefaultFromString;
             Value = new T[0];
         }
-
+        // string to T
         public Converter<T> ConvertItem { get; set; }
         static T DefaultFromString(string toConvert) {
             return (T) Convert.ChangeType(toConvert, typeof(T));
@@ -26,10 +26,10 @@ namespace EsfLibrary {
                 Value = this.Value
             };
         }
-
         public override void ToXml(TextWriter writer, string indent) {
             writer.WriteLine("{2}<{0} Length=\"{1}\"/>", TypeCode, Value.Length, indent);
         }
+
         #region ICodecNode Implementation
         protected virtual EsfType ContainedTypeCode {
             get { 
@@ -41,13 +41,14 @@ namespace EsfLibrary {
 #if DEBUG
             // Console.WriteLine("decoding array type code {0} containing {1}", type, containedTypeCode);
 #endif
+
             int size = Codec.ReadSize(reader);
 #if DEBUG
             // Console.WriteLine("Reading array[{0}] with {1} elements", type, size);
 #endif
             List<T> read = new List<T>();
             using (var itemReader = new BinaryReader(new MemoryStream(reader.ReadBytes(size)))) {
-                while (itemReader.BaseStream.Position < itemReader.BaseStream.Length) {
+                while (itemReader.BaseStream.Position < size) {
                     read.Add(ReadFromCodec(itemReader, containedTypeCode));
                 }
             }
@@ -61,7 +62,7 @@ namespace EsfLibrary {
 #endif
 
             writer.Write((byte)myRealType);
-            byte[] encodedArray;
+            byte[] encodedArray = new byte[0];
             using (var stream = new MemoryStream()) {
                 using (var memWriter = new BinaryWriter(stream)) {
                     CodecNode<T> valueNode = Codec.CreateValueNode(containedTypeCode, false) as CodecNode<T>;
@@ -110,11 +111,9 @@ namespace EsfLibrary {
         public override int GetHashCode() {
             return Value.GetHashCode();
         }
-
         public string Separator {
             get; set; 
         }
-
         public override string ToString() {
             string result = "";
             try {
@@ -126,9 +125,12 @@ namespace EsfLibrary {
                 result = Value.ToString();
                 result = string.Format("{0}{1}]", result.Substring(0, result.Length-1), Value.Length);
             }
+            // result = string.Format("{0}{1}]", result.Substring(0, result.Length-1), Value.Length);
             return result;
         }
+        #endregion
 
+        #region Utility Functions
         static bool ArraysEqual<O> (O[] array1, O[] array2) {
             bool result = array1.Length == array2.Length;
             if (result) {
