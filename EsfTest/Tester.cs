@@ -11,80 +11,42 @@ namespace EsfTest {
         public static TextWriter logWriter;        
         public static TextWriter addressLogWriter;
         public static void Main(string[] args) {
-            if (args != null && args.Length > 0)
-                if (string.Equals(args[0], "compare", StringComparison.OrdinalIgnoreCase)) {
-                    if (args.Length < 3) {
-                        Console.Error.WriteLine("Usage: EsfTest compare <fileA> <fileB>");
-                        return;
-                    }
+            TryMutate();
+        }
+        private const string OriginalFile = @"..\..\..\..\Original.save";
+        private const string ChangedFile = @"Changed.save";
+        private static void TryMutate() {
+            //string path = "COMPRESSED_DATA/CAMPAIGN_ENV/CAMPAIGN_MODEL/WORLD/FACTION_ARRAY/FACTION_ARRAY - 93/FACTION/FACTION_ECONOMICS";
+            string path = "COMPRESSED_DATA/CAMPAIGN_ENV/CAMPAIGN_MODEL/WORLD/FACTION_ARRAY/FACTION_ARRAY - 17/FACTION/ARMY_ARRAY/ARMY_ARRAY - 1/MILITARY_FORCE/MILITARY_FORCE_HORDE_DETAILS/MILITARY_FORCE_SLOT_MANAGER/SLOT_BLOCK/SLOT_BLOCK - 0/MILITARY_FORCE_SLOT/MILITARY_FORCE_BUILDING_MANAGER/BUILDING_BASE";
 
-                    Environment.ExitCode = CompareEsf.Run(args[1], args[2]);
-                    return;
-                } else if (string.Equals(args[0], "probe", StringComparison.OrdinalIgnoreCase)) {
-                    if (args.Length < 3) {
-                        Console.Error.WriteLine("Usage: EsfTest probe <input> <output>");
-                        return;
-                    }
-                    var sw = Stopwatch.StartNew();
+            var sw = Stopwatch.StartNew();
 
-                    Console.WriteLine($"t={sw.Elapsed} load");
-                    EsfFile file = EsfCodecUtil.LoadEsfFile(args[1]);
+            Console.WriteLine($"t={sw.Elapsed} load");
+            EsfFile file = EsfCodecUtil.LoadEsfFile(OriginalFile);
 
-                    Console.WriteLine($"t={sw.Elapsed} force-decode");
-                    ForceDecode(file.RootNode);
+            Console.WriteLine($"t={sw.Elapsed} locate {path}");
+            ParentNode target = FindRecordPath(file.RootNode as ParentNode, path);
+            if (target == null) {
+                Console.WriteLine($"t={sw.Elapsed} target not found");
+                return;
+            }
 
-                    Console.WriteLine($"t={sw.Elapsed} touch-one-node");
-                    // Touch something minimal: mark root modified (or modify a known value node if you have a path helper)
-                    file.RootNode.Modified = true;
+            Console.WriteLine($"t={sw.Elapsed} mutate");
+            //bool mutated = Mutate(target, 666);
+            bool mutated = Mutate(target, "Changed");
+            Console.WriteLine($"t={sw.Elapsed} mutated={mutated}");
 
-                    Console.WriteLine($"t={sw.Elapsed} write");
-                    EsfCodecUtil.WriteEsfFile(args[2], file);
+            Console.WriteLine($"t={sw.Elapsed} write");
+            EsfCodecUtil.WriteEsfFile(ChangedFile, file);
 
-                    Console.WriteLine($"t={sw.Elapsed} done");
-                    return;
-                } else if (string.Equals(args[0], "probe3", StringComparison.OrdinalIgnoreCase)) {
-                    if (args.Length < 3) {
-                        Console.Error.WriteLine("Usage: EsfTest probe3 <input> <output> [--path=/A/B/C]");
-                        return;
-                    }
+            Console.WriteLine($"t={sw.Elapsed} done");
+            if (CompareEsf.Run(OriginalFile, ChangedFile, path) != 3) {
+                Console.WriteLine("New file has unexpected difference");
+            } else {
+                Console.WriteLine("New file matches original except for intended mutation");
+            }
 
-                    //string path = "COMPRESSED_DATA/CAMPAIGN_ENV/CAMPAIGN_MODEL/WORLD/FACTION_ARRAY/FACTION_ARRAY - 93/FACTION/FACTION_ECONOMICS";
-                    string path = "COMPRESSED_DATA/CAMPAIGN_ENV/CAMPAIGN_MODEL/WORLD/FACTION_ARRAY/FACTION_ARRAY - 17/FACTION/ARMY_ARRAY/ARMY_ARRAY - 1/MILITARY_FORCE/MILITARY_FORCE_HORDE_DETAILS/MILITARY_FORCE_SLOT_MANAGER/SLOT_BLOCK/SLOT_BLOCK - 0/MILITARY_FORCE_SLOT/MILITARY_FORCE_BUILDING_MANAGER/BUILDING_BASE";
-                    for (int i = 3; i < args.Length; i++) {
-                        if (args[i].StartsWith("--path=", StringComparison.OrdinalIgnoreCase)) {
-                            path = args[i].Substring("--path=".Length);
-                        }
-                    }
-
-                    var sw = Stopwatch.StartNew();
-
-                    Console.WriteLine($"t={sw.Elapsed} load");
-                    EsfFile file = EsfCodecUtil.LoadEsfFile(args[1]);
-
-                    Console.WriteLine($"t={sw.Elapsed} locate {path}");
-                    ParentNode target = FindRecordPath(file.RootNode as ParentNode, path);
-                    if (target == null) {
-                        Console.WriteLine($"t={sw.Elapsed} target not found");
-                        return;
-                    }
-
-                    Console.WriteLine($"t={sw.Elapsed} mutate");
-                    //bool mutated = Mutate(target, 666);
-                    bool mutated = Mutate(target, "Changed");
-                    Console.WriteLine($"t={sw.Elapsed} mutated={mutated}");
-
-                    Console.WriteLine($"t={sw.Elapsed} write");
-                    EsfCodecUtil.WriteEsfFile(args[2], file);
-
-                    Console.WriteLine($"t={sw.Elapsed} done");
-                    if (CompareEsf.Run(args[1], args[2], path) != 3) {
-                        Console.WriteLine("New file has unexpected difference");
-                    } else {
-                        Console.WriteLine("New file matches original except for intended mutation");
-                    }
-
-                    return;
-                }
+            return;
         }
         private static ParentNode FindRecordPath(ParentNode root, string path) {
             if (root == null) return null;
@@ -132,15 +94,6 @@ namespace EsfTest {
 
             return false;
         }
-
-        private static void ForceDecode(EsfNode node) {
-            if (node is ParentNode parent) {
-                foreach (EsfNode child in parent.AllNodes) {
-                    ForceDecode(child);
-                }
-            }
-        }
-
         public static void runTests() {
             //new CodecTest().run();
         }
