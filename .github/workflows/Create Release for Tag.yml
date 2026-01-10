@@ -31,6 +31,8 @@ jobs:
             -c Release `
             -p:SelfContained=false `
             -p:PublishSingleFile=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
             -o .\artifacts\publish\framework-dependent\win-x64
 
       - name: Publish (fat, win-x64, single-file)
@@ -40,6 +42,8 @@ jobs:
             -c Release `
             -p:SelfContained=true `
             -p:PublishSingleFile=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
             -o .\artifacts\publish\self-contained\win-x64
 
       - name: Create ZIPs
