@@ -1,0 +1,77 @@
+name: Create Release for Tag
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore .\EditSF\EditSF.csproj
+
+      - name: Publish (framework-dependent, win-x64, single-file)
+        shell: pwsh
+        run: |
+          dotnet publish .\EditSF\EditSF.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained false `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o .\artifacts\publish\framework-dependent\win-x64
+
+      - name: Publish (self-contained, win-x64, single-file)
+        shell: pwsh
+        run: |
+          dotnet publish .\EditSF\EditSF.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o .\artifacts\publish\self-contained\win-x64
+
+      - name: Create ZIPs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path .\artifacts | Out-Null
+
+          $tag = "${{ github.ref_name }}"
+
+          # Thin (requires .NET 10 runtime installed)
+          Compress-Archive -Path .\artifacts\publish\framework-dependent\win-x64\* `
+            -DestinationPath .\artifacts\EditSF-$tag-win-x64.zip -Force
+
+          # Fat (includes runtime)
+          Compress-Archive -Path .\artifacts\publish\self-contained\win-x64\* `
+            -DestinationPath .\artifacts\EditSF-$tag-win-x64-with-runtime.zip -Force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: EditSF ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/EditSF-${{ github.ref_name }}-win-x64.zip
+            artifacts/EditSF-${{ github.ref_name }}-win-x64-with-runtime.zip
