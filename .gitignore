@@ -12,7 +12,7 @@ UpdateBuildTools.bat
 *.user
 *.userosscache
 *.sln.docstates
-
+Analyze.py
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

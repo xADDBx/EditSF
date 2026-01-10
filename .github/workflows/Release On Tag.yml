@@ -1,0 +1,53 @@
+name: Build + Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore .\EditSF\EditSF.csproj
+
+      - name: Publish (win-x64)
+        run: |
+          dotnet publish .\EditSF\EditSF.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained false `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o .\artifacts\EditSF
+
+      - name: Create ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path .\artifacts | Out-Null
+          Compress-Archive -Path .\artifacts\EditSF\* -DestinationPath .\artifacts\EditSF-${{ github.ref_name }}-win-x64.zip -Force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: EditSF ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/EditSF-${{ github.ref_name }}-win-x64.zip
